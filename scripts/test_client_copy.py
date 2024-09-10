@@ -239,7 +239,7 @@ else:
 
 
 ############## Main section for the communication client ##############
-RUN_COMMUNICATION_CLIENT = True # If true, run this. If false, skip it
+RUN_COMMUNICATION_CLIENT = False # If true, run this. If false, skip it
 while RUN_COMMUNICATION_CLIENT:
     # Input a command
     cmd = input('Type in a string to send: ')
@@ -265,7 +265,7 @@ CMD_SEQUENCE = ['w0:36', 'r0:90', 'w0:36', 'r0:90', 'w0:12', 'r0:-90', 'w0:24', 
 LOOP_PAUSE_TIME = 1 # seconds
 
 # Main loop
-RUN_DEAD_RECKONING = False # If true, run this. If false, skip it
+RUN_DEAD_RECKONING = True # If true, run this. If false, skip it
 ct = 0
 while RUN_DEAD_RECKONING:
     # Pause for a little while so as to not spam commands insanely fast
@@ -278,8 +278,15 @@ while RUN_DEAD_RECKONING:
         packet_tx = packetize('u0')
         if packet_tx:
             transmit(packet_tx)
-            [responses, time_rx] = receive()
+            [responses, time_rx] = receive()    # e.g. responses = [['u0', '6.801']]
             print(f"Ultrasonic 0 reading: {response_string('u0',responses)}")
+            
+            if (float(responses[0][1]) < 2):
+                print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
+                time.sleep(5)
+                packet_stop = packetize("xx")
+                if packet_stop:
+                    transmit(packet_stop)
 
         # Check an ultrasonic sensor 'u1'
         packet_tx = packetize('u1')
@@ -287,6 +294,13 @@ while RUN_DEAD_RECKONING:
             transmit(packet_tx)
             [responses, time_rx] = receive()
             print(f"Ultrasonic 1 reading: {response_string('u1',responses)}")
+            
+            if (float(responses[0][1]) < 2):
+                print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
+                time.sleep(5)
+                packet_stop = packetize("xx")
+                if packet_stop:
+                    transmit(packet_stop)
 
         # Check the remaining three sensors: gyroscope, compass, and IR
         packet_tx = packetize('g0,c0,i0')
