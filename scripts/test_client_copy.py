@@ -262,7 +262,7 @@ while RUN_COMMUNICATION_CLIENT:
 ############## Main section for the open loop control algorithm ##############
 # The sequence of commands to run
 CMD_SEQUENCE = ['w0:36', 'r0:90', 'w0:36', 'r0:90', 'w0:12', 'r0:-90', 'w0:24', 'r0:-90', 'w0:6', 'r0:720']
-LOOP_PAUSE_TIME = 1 # seconds
+LOOP_PAUSE_TIME = 0.01 # seconds
 
 # Main loop
 RUN_DEAD_RECKONING = True # If true, run this. If false, skip it
@@ -281,12 +281,13 @@ while RUN_DEAD_RECKONING:
             [responses, time_rx] = receive()    # e.g. responses = [['u0', '6.801']]
             print(f"Ultrasonic 0 reading: {response_string('u0',responses)}")
             
+            print("responses[0][1]:", responses[0][1])
             if (float(responses[0][1]) < 2):
                 print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
-                time.sleep(5)
                 packet_stop = packetize("xx")
                 if packet_stop:
                     transmit(packet_stop)
+                    break
 
         # Check an ultrasonic sensor 'u1'
         packet_tx = packetize('u1')
@@ -297,10 +298,38 @@ while RUN_DEAD_RECKONING:
             
             if (float(responses[0][1]) < 2):
                 print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
-                time.sleep(5)
                 packet_stop = packetize("xx")
                 if packet_stop:
                     transmit(packet_stop)
+                    break
+
+        # Check an ultrasonic sensor 'u2'
+        packet_tx = packetize('u2')
+        if packet_tx:
+            transmit(packet_tx)
+            [responses, time_rx] = receive()
+            print(f"Ultrasonic 2 reading: {response_string('u2',responses)}")
+            
+            if (float(responses[0][1]) < 2):
+                print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
+                packet_stop = packetize("xx")
+                if packet_stop:
+                    transmit(packet_stop)
+                    break
+
+        # Check an ultrasonic sensor 'u3'
+        packet_tx = packetize('u3')
+        if packet_tx:
+            transmit(packet_tx)
+            [responses, time_rx] = receive()
+            print(f"Ultrasonic 3 reading: {response_string('u3',responses)}")
+            
+            if (float(responses[0][1]) < 2):
+                print(f"{responses[0][0]} = {responses[0][1]}. Less than 2\".")
+                packet_stop = packetize("xx")
+                if packet_stop:
+                    transmit(packet_stop)
+                    break
 
         # Check the remaining three sensors: gyroscope, compass, and IR
         packet_tx = packetize('g0,c0,i0')
