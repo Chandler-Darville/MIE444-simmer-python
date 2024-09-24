@@ -262,7 +262,7 @@ while RUN_COMMUNICATION_CLIENT:
 ############## Main section for the open loop control algorithm ##############
 # The sequence of commands to run
 CMD_SEQUENCE = ['w0:36', 'r0:90', 'w0:36', 'r0:90', 'w0:12', 'r0:-90', 'w0:24', 'r0:-90', 'w0:6', 'r0:720']
-LOOP_PAUSE_TIME = 1 # seconds
+LOOP_PAUSE_TIME = 0.1 # seconds
 
 # Main loop
 RUN_DEAD_RECKONING = False # If true, run this. If false, skip it
@@ -314,8 +314,9 @@ while RUN_DEAD_RECKONING:
         print("Sequence complete!")
         
 
-lab3 = True
+Lab3 = True         # runs obstacle avoidance program if True
 
+# initializes dictionary containing the sensors on the robot and their responses
 sensorResponse = {
     "u0":None,
     "u1":None,
@@ -323,33 +324,40 @@ sensorResponse = {
     "u3":None
 }
 
-sensorList = sensorResponse.keys()
+sensorList = sensorResponse.keys()  # list of sensors
 
+# main loop for obstacle avoidance program
+while Lab3:
 
-while lab3:
-    
-    time.sleep(LOOP_PAUSE_TIME)
-    
-    sensorListString = ','.join(sensorList)
-    
+    time.sleep(LOOP_PAUSE_TIME)             # adds delay to not spam commands
+
+    sensorListString = ','.join(sensorList) # formats sensors into string to packetize
+
+    # packetizes sensors, transmits packet, receives responses
     packet_tx = packetize(sensorListString)
     if packet_tx:
         transmit(packet_tx)
         [responses, time_rx] = receive()
-        
+
+        # puts responses into sensor response dict
         i = 0
         for sensor in sensorList:
             if responses[i][0] == sensor:
-                sensorResponse[sensor] = responses[i][1]
+                sensorResponse[sensor] = float(responses[i][1])
             i += 1
-    
+
     print(sensorResponse)
-    
-    '''
-    for sensor in sensorList:
-        
-        packet_tx = packetize(sensor)
-        if packet_tx:
-            transmit(packet_tx)
+
+    # moves forwards based on front sensor reading
+    if (sensorResponse["u0"] > 21):
+        packet_drive = packetize("w0:18")
+        if packet_drive:
+            transmit(packet_drive)
             [responses, time_rx] = receive()
-    '''
+        
+    elif (sensorResponse["u0"] > 6):
+        packet_drive = packetize("w0:3")
+        if packet_drive:
+            transmit(packet_drive)
+            [responses, time_rx] = receive()
+            

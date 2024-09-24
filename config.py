@@ -162,8 +162,8 @@ w0_info = {
     'ang_velocity': 0,
     'motors': [motors['m0'], motors['m1']],
     'motor_direction': [1, 1],
-    # 'bias': {'x': 0, 'y': 0, 'rotation': 0.2},
-    # 'error': {'x': 0.02, 'y': 0.05, 'rotation': 1}
+    'bias': {'x': 0, 'y': 0, 'rotation': 0.2},
+    'error': {'x': 0.02, 'y': 0.05, 'rotation': 1}
 }
 
 r0_info = {
@@ -175,8 +175,8 @@ r0_info = {
     'ang_velocity': 120,
     'motors': [motors['m0'], motors['m1']],
     'motor_direction': [1, -1],
-    # 'bias': {'x': 0, 'y': 0, 'rotation': 0.02},
-    # 'error': {'x': 0.003, 'y': 0.003, 'rotation': 0.02}
+    'bias': {'x': 0, 'y': 0, 'rotation': 0.02},
+    'error': {'x': 0.003, 'y': 0.003, 'rotation': 0.02}
 }
 
 drives = {
