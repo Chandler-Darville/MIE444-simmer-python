@@ -262,7 +262,7 @@ while RUN_COMMUNICATION_CLIENT:
 ############## Main section for the open loop control algorithm ##############
 # The sequence of commands to run
 CMD_SEQUENCE = ['w0:36', 'r0:90', 'w0:36', 'r0:90', 'w0:12', 'r0:-90', 'w0:24', 'r0:-90', 'w0:6', 'r0:720']
-LOOP_PAUSE_TIME = 0.1 # seconds
+LOOP_PAUSE_TIME = 0.2 # seconds
 
 # Main loop
 RUN_DEAD_RECKONING = False # If true, run this. If false, skip it
@@ -321,10 +321,14 @@ sensorResponse = {
     "u0":None,
     "u1":None,
     "u2":None,
-    "u3":None
+    "u3":None,
+    "u4":None,
+    "u5":None
 }
 
 sensorList = sensorResponse.keys()  # list of sensors
+
+veers = 0
 
 # main loop for obstacle avoidance program
 while Lab3:
@@ -338,26 +342,155 @@ while Lab3:
     if packet_tx:
         transmit(packet_tx)
         [responses, time_rx] = receive()
+        print(responses)
 
         # puts responses into sensor response dict
-        i = 0
         for sensor in sensorList:
-            if responses[i][0] == sensor:
-                sensorResponse[sensor] = float(responses[i][1])
-            i += 1
+            
+            for response in responses:
+                
+                if (response[0] == sensor):
+                    sensorResponse[sensor] = float(response[1])
+
 
     print(sensorResponse)
 
     # moves forwards based on front sensor reading
-    if (sensorResponse["u0"] > 21):
-        packet_drive = packetize("w0:18")
+    if ((sensorResponse["u0"] == None) or (sensorResponse["u0"] > 15)):
+        packet_drive = packetize("w0:12")
         if packet_drive:
             transmit(packet_drive)
+            print("forward 12")
             [responses, time_rx] = receive()
         
-    elif (sensorResponse["u0"] > 6):
-        packet_drive = packetize("w0:3")
+    elif (sensorResponse["u0"] > 8):
+        packet_drive = packetize("w0:6")
         if packet_drive:
             transmit(packet_drive)
+            print("forward 3")
             [responses, time_rx] = receive()
+    
+    elif (sensorResponse["u0"] > 4):
+        packet_drive = packetize("w0:1")
+        if packet_drive:
+            transmit(packet_drive)
+            print("forward 1")
+            [responses, time_rx] = receive()
+
+    elif (sensorResponse["u0"] > 3):
+        packet_drive = packetize("w0:0.5")
+        if packet_drive:
+            transmit(packet_drive)
+            print("forward 0.5")
+            [responses, time_rx] = receive()
+    
+    # checks for potential collision
+    stopDistance = 3          # rover will stop when sensor reads less than 3in
+    # creates list of bools that will be true if sensor value is within stop distance
+    sensorDanger = [d < stopDistance for d in sensorResponse.values()]
+    # if in danger of obstacle, the rover will stop
+    if ((sensorResponse["u0"] < 3) or (sensorResponse["u1"] < 2) or (sensorResponse["u2"] < 2) or
+        (sensorResponse["u4"] < 3) or (sensorResponse["u5"] < 3)):
+        print(sensorDanger)
+        packet_stop = packetize("xx")
+        if packet_stop:
+            transmit(packet_stop)
             
+        # will avoid obstacle depending on conditions
+        
+        # initial condition (sometimes gets stuck due to sensor error)
+        if ((sensorResponse["u0"] > 12) and (sensorResponse["u1"] > 3) and
+            (sensorResponse["u2"] > 3) and (sensorResponse["u3"] < stopDistance)):
+            # move forward
+            print("initial cond")
+            packet_drive = packetize("w0:1")
+            if packet_drive:
+                transmit(packet_drive)
+                [responses, time_rx] = receive()
+        
+        # rover veers into side wall on a straight path
+        if ((sensorResponse["u0"] > 12) and 
+            ((sensorResponse["u1"] < 8) or (sensorResponse["u2"] < 8))):
+            print("veer into wall")
+            
+            if (veers > 1):
+                packet_drive = packetize("w0:2")
+                if packet_drive:
+                    transmit(packet_drive)
+                    print("move away from wall 2, too many veers")
+                    [responses, time_rx] = receive()
+                veers = 0   # reset
+            
+            # rotates ccw if right sensor is triggered
+            if (sensorResponse["u1"] < sensorResponse["u2"]):
+                print("veered into right wall")
+                packet_rot = packetize("r0:-6")
+                if packet_rot:
+                    transmit(packet_rot)
+                    [responses, time_rx] = receive()
+                    veers += 1
+            # rotates cw if left sensor is triggered
+            else:
+                print("veered into left wall")
+                packet_rot = packetize("r0:6")
+                if packet_rot:
+                    transmit(packet_rot)
+                    [responses, time_rx] = receive()
+                    veers += 1
+            # moves away from wall after rotation
+            packet_drive = packetize("w0:2")
+            if packet_drive:
+                transmit(packet_drive)
+                print("move away from wall 2")
+                [responses, time_rx] = receive()
+        
+        # rover needs to turn a corner to the left
+        elif ((sensorResponse["u0"] < 3) and (sensorResponse["u1"] < 6) and
+              (sensorResponse["u2"] > 12)):
+            # turn left
+            packet_rot = packetize("r0:-90")
+            if packet_rot:
+                transmit(packet_rot)
+                print("turns left")
+                [responses, time_rx] = receive()
+
+        # rover needs to turn a corner to the right
+        elif ((sensorResponse["u0"] < 3) and (sensorResponse["u1"] > 12) and
+              (sensorResponse["u2"] < 6)):
+            # turn right
+            packet_rot = packetize("r0:90")
+            if packet_rot:
+                transmit(packet_rot)
+                print("turns right")
+                [responses, time_rx] = receive()
+
+        # rover runs into a corner
+        elif ((sensorResponse["u0"] > 3) and
+              ((sensorResponse["u4"] < 3) or (sensorResponse["u5"] < 3))):
+            
+            if (sensorResponse["u4"] < sensorResponse["u5"]):
+                # turn left
+                packet_rot = packetize("r0:-45")
+                if packet_rot:
+                    transmit(packet_rot)
+                    print("avoid corner")
+                    [responses, time_rx] = receive()
+            else:
+                # turn right
+                packet_rot = packetize("r0:45")
+                if packet_rot:
+                    transmit(packet_rot)
+                    print("avoid corner")
+                    [responses, time_rx] = receive()
+        
+        # middle sensor stuck on corner
+        elif ((sensorResponse["u0"] < 3) and 
+              (sensorResponse["u4"] > 6) and (sensorResponse["u5"] > 6)):
+                # turn left
+                packet_rot = packetize("r0:-45")
+                if packet_rot:
+                    transmit(packet_rot)
+                    print("avoid corner")
+                    [responses, time_rx] = receive()
+        
+        # REACH END OF CORRIDOR WITH TWO PATHS (RIGHT AND LEFT)
