@@ -316,6 +316,10 @@ while RUN_DEAD_RECKONING:
 
 Lab3 = True         # runs obstacle avoidance program if True
 
+if Lab3:
+    print("Starting Obstacle Avoidance Program")
+    time.sleep(5)
+
 # initializes dictionary containing the sensors on the robot and their responses
 sensorResponse = {
     "u0":None,
@@ -400,7 +404,7 @@ while Lab3:
         
         # initial condition (sometimes gets stuck due to sensor error)
         if ((sensorResponse["u0"] > 12) and (sensorResponse["u1"] > 3) and
-            (sensorResponse["u2"] > 3) and (sensorResponse["u3"] < stopDistance)):
+            (sensorResponse["u2"] > 3) and (sensorResponse["u3"] < 3.5)):
             # move forward
             print("initial cond")
             packet_drive = packetize("w0:1")
@@ -470,14 +474,14 @@ while Lab3:
             
             if (sensorResponse["u4"] < sensorResponse["u5"]):
                 # turn left
-                packet_rot = packetize("r0:-45")
+                packet_rot = packetize("r0:-30")
                 if packet_rot:
                     transmit(packet_rot)
                     print("avoid corner")
                     [responses, time_rx] = receive()
             else:
                 # turn right
-                packet_rot = packetize("r0:45")
+                packet_rot = packetize("r0:30")
                 if packet_rot:
                     transmit(packet_rot)
                     print("avoid corner")
@@ -494,3 +498,22 @@ while Lab3:
                     [responses, time_rx] = receive()
         
         # REACH END OF CORRIDOR WITH TWO PATHS (RIGHT AND LEFT)
+        elif ((sensorResponse["u0"] < 3) and 
+              (sensorResponse["u1"] > 8) and (sensorResponse["u2"] > 8)):
+                # turn around
+                packet_rot = packetize("r0:180")
+                if packet_rot:
+                    transmit(packet_rot)
+                    print("turn around")
+                    [responses, time_rx] = receive()
+                    time.sleep(0.5)
+        
+        # Dead end
+        elif ((sensorResponse["u0"] < 3) and (sensorResponse["u1"] < 6) and
+              (sensorResponse["u2"] < 6) and (sensorResponse["u3"] > 12)):
+                # turn around
+                packet_rot = packetize("r0:180")
+                if packet_rot:
+                    transmit(packet_rot)
+                    print("turn around, dead end")
+                    [responses, time_rx] = receive()
