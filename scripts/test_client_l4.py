@@ -340,6 +340,35 @@ visual_grid = [['.']*col for i in range(row)]
 
 test = 0
 
+
+def buildRover(row, col, grid):
+    
+    h = 4
+    w = 6
+    
+    tl_p = (int((row/2)-(h/2)-1), int((col/2)-(w/2)-1))
+    print(tl_p)
+    
+    for i in range(w+1):
+        
+        grid[tl_p[0]][tl_p[1]+i] = '_'
+        grid[tl_p[0]+h][tl_p[1]+i] = '_'
+    
+    for i in range(h):
+        
+        grid[tl_p[0]+1+i][tl_p[1]] = '|'
+        grid[tl_p[0]+1+i][tl_p[1]+w] = '|'
+    
+    for i in range(h-1):
+        for j in range(w-1):
+            
+            grid[tl_p[0]+1+i][tl_p[1]+1+j] = ' '
+            
+    
+    return
+
+
+
 # main loop for sensor visualization program
 while Lab4:
 
@@ -369,6 +398,8 @@ while Lab4:
             print(visual_grid[i][j], end = '')
         
         print('')
+
+    buildRover(row, col, visual_grid)
 
     test += 1
     if test > 2:
