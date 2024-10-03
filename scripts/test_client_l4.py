@@ -338,8 +338,18 @@ col = 32
 row = 16
 visual_grid = [['.']*col for i in range(row)]
 
-test = 0
 
+def buildGrid(row, col, grid):
+    
+    for i in range(row):
+    
+        for j in range(col):
+        
+            print(grid[i][j], end = '')
+    
+        print('')
+    
+    return
 
 def buildRover(row, col, grid):
     
@@ -347,7 +357,6 @@ def buildRover(row, col, grid):
     w = 6
     
     tl_p = (int((row/2)-(h/2)-1), int((col/2)-(w/2)-1))
-    print(tl_p)
     
     for i in range(w+1):
         
@@ -367,7 +376,33 @@ def buildRover(row, col, grid):
     
     return
 
+def showSensors(row, col, grid, sensors):    
+    
+    s0 = f"F:{int(sensors["u0"]):02d}"
+    s1 = f"R:{int(sensors["u1"]):02d}"
+    s2 = f"L:{int(sensors["u2"]):02d}"
+    s3 = f"B:{int(sensors["u3"]):02d}"
+    
+    fp = (int(row/2)-4, int(col/2)-2)
+    rp = (int(row/2)-1, int(col/2)+3)
+    lp = (int(row/2)-1, int(col/2)-8)
+    bp = (int(row/2)+2, int(col/2)-2)
+    
+    for i in range(len(s0)):
+        grid[fp[0]][fp[1]+i] = s0[i]
+        
+    for i in range(len(s1)):
+        grid[rp[0]][rp[1]+i] = s1[i]
+        
+    for i in range(len(s2)):
+        grid[lp[0]][lp[1]+i] = s2[i]
+    
+    for i in range(len(s3)):
+        grid[bp[0]][bp[1]+i] = s3[i]
+        
+    return
 
+moving = False
 
 # main loop for sensor visualization program
 while Lab4:
@@ -391,16 +426,64 @@ while Lab4:
                     sensorResponse[sensor] = float(response[1])
 
 
-    for i in range(row):
-        
-        for j in range(col):
-            
-            print(visual_grid[i][j], end = '')
-        
-        print('')
-
     buildRover(row, col, visual_grid)
+    
+    showSensors(row, col, visual_grid, sensorResponse)
+    
+    buildGrid(row, col, visual_grid)
+    
+    d_cmd = input("Input drive command: ")
+    
+    packet_tx = packetize(d_cmd)
+    if packet_tx:
+        transmit(packet_tx)
+        [responses, time_rx] = receive()
+        print(responses)
+        print(f"Drive command response: {response_string(d_cmd,responses)}")
+        
+        moving = True
 
-    test += 1
-    if test > 2:
-        break
+    
+
+    
+    while moving:
+        
+        time.sleep(LOOP_PAUSE_TIME)
+        
+        packet_tx = packetize("w0:0")
+        if packet_tx:
+            transmit(packet_tx)
+            [responses, time_rx] = receive()
+            print(responses)
+            print(f"w0:0: {response_string(d_cmd,responses)}")
+            for r in responses:
+                if (r[0] == "w0"):
+                    print("r: ", r)
+                    moving = (r[1] == 'False')
+                    print(moving)
+
+        # packetizes sensors, transmits packet, receives responses
+        packet_tx = packetize(sensorListString)
+        if packet_tx:
+            transmit(packet_tx)
+            [responses, time_rx] = receive()
+            print("sensor_response: ", responses)
+
+            # puts responses into sensor response dict
+            for sensor in sensorList:
+                
+                for response in responses:
+                    
+                    if (response[0] == sensor):
+                        sensorResponse[sensor] = float(response[1])
+
+
+        buildRover(row, col, visual_grid)
+        
+        showSensors(row, col, visual_grid, sensorResponse)
+        
+        buildGrid(row, col, visual_grid)
+
+        
+    
+    
