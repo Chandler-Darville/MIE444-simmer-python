@@ -438,8 +438,6 @@ while Lab4:
     if packet_tx:
         transmit(packet_tx)
         [responses, time_rx] = receive()
-        print(responses)
-        print(f"Drive command response: {response_string(d_cmd,responses)}")
         
         moving = True
 
@@ -454,20 +452,15 @@ while Lab4:
         if packet_tx:
             transmit(packet_tx)
             [responses, time_rx] = receive()
-            print(responses)
-            print(f"w0:0: {response_string(d_cmd,responses)}")
             for r in responses:
                 if (r[0] == "w0"):
-                    print("r: ", r)
                     moving = (r[1] == 'False')
-                    print(moving)
 
         # packetizes sensors, transmits packet, receives responses
         packet_tx = packetize(sensorListString)
         if packet_tx:
             transmit(packet_tx)
             [responses, time_rx] = receive()
-            print("sensor_response: ", responses)
 
             # puts responses into sensor response dict
             for sensor in sensorList:
