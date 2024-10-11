@@ -9,6 +9,21 @@ back the data value. It can also toggle the built-in LED with a command "ld".
 
 */
 
+// connect motor controller pins to Arduino digital pins
+int enA = 9;
+int in1 = 8;
+int in2 = 7;
+// variables to store the number of encoder pulses
+// for each motor
+#define ENCODER_A 2
+#define ENCODER_B 4
+volatile long motCount = 0; // increases ~40 per inch (ASSUMING 8CM WHEEL)
+float inchTicks = 40.0;
+
+// Define functions
+void InitMotors(void);
+int MoveForward(float movInches);
+
 /* Declarations and Constants */
 String packet;
 String responseString;
@@ -152,14 +167,20 @@ String parseCmd(String cmdString) {
   Here you would insert code to do something with the received cmdID and data.
   The "ld" command is provided as an example.
   */
+  if (cmdID == "d1")
+  {
+    double movInches = data;
+    MoveForward(movInches);
+  }
+  
 
-   // Toggle the built-in LED if the ld command is received
-    if (cmdID == "ld") {
-      bool led_state = digitalRead(LED_BUILTIN);
-      digitalWrite(LED_BUILTIN, !led_state);
-      digitalWrite(2, !led_state);
-      return cmdID + ':' + (!led_state ? "True" : "False");
-    }
+  // Toggle the built-in LED if the ld command is received
+  if (cmdID == "ld") {
+    bool led_state = digitalRead(LED_BUILTIN);
+    digitalWrite(LED_BUILTIN, !led_state);
+    digitalWrite(2, !led_state);
+    return cmdID + ':' + (!led_state ? "True" : "False");
+  }
 
   // Create a string response
   return cmdID + ':' + String(data + DIFFERENCE);
@@ -176,6 +197,8 @@ void setup() {
   // Set serial parameters
   Serial.begin(BAUDRATE);
   Serial.setTimeout(TIMEOUT);
+
+  InitMotors();
 
   debugMessage("Arduino is ready");
 }
@@ -197,4 +220,50 @@ void loop() {
     Serial.print(packetize(responseString));
     debugMessage("");
   }
+}
+
+void InitMotors(void)
+{
+  // set all the motor control pins to outputs
+  pinMode(enA, OUTPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+
+  pinMode(ENCODER_A, INPUT);
+  pinMode(ENCODER_B, INPUT);
+
+  // initialize hardware interrupts
+  attachInterrupt(digitalPinToInterrupt(ENCODER_A), EncoderEvent, CHANGE);
+}
+
+// encoder event for the interrupt call
+void EncoderEvent() {
+  if (digitalRead(ENCODER_A) == HIGH) {
+    if (digitalRead(ENCODER_B) == LOW) {
+      motCount++;
+    } else {
+      motCount--;
+    }
+  } else {
+    if (digitalRead(ENCODER_B) == LOW) {
+      motCount--;
+    } else {
+      motCount++;
+    }
+  }
+}
+
+int MoveForward(double movInches)
+{
+  // turn on motor in forward direction
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  
+  // set speed to 50 out of possible range 0~255
+  analogWrite(enA, 50);
+  
+  if (motCount > inchTicks*movInches) {
+    analogWrite(enA, 0);
+  }
+  
 }
